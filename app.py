@@ -1,78 +1,80 @@
 import streamlit as st
-from moviepy.editor import VideoFileClip, vfx
+from moviepy.editor import ImageClip, vfx
 import os
 
-# --- إعدادات الصفحة والستايل ---
-st.set_page_config(page_title="Generator AI - Pro Studio", layout="wide", page_icon="🎥")
+# --- إعدادات الصفحة ---
+st.set_page_config(page_title="Image to Video Generator", layout="wide", page_icon="🖼️")
 
-# تصحيح الخطأ هنا: تم تغيير unsafe_allow_config إلى unsafe_allow_html
 st.markdown("""
     <style>
     .stApp { background-color: #0f172a; color: white; }
     .stButton>button { 
-        background: linear-gradient(90deg, #38bdf8 0%, #3b82f6 100%); 
+        background: linear-gradient(90deg, #f472b6 0%, #db2777 100%); 
         color: white; border-radius: 12px; height: 3.5rem; font-size: 1.2rem; font-weight: bold; width: 100%; border: none;
     }
     .download-section { 
-        background-color: #1e293b; border: 1px solid #38bdf8; padding: 20px; border-radius: 15px; margin: 15px 0;
+        background-color: #1e293b; border: 1px solid #f472b6; padding: 20px; border-radius: 15px; margin: 15px 0;
     }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🚀 GENERATOR AI")
-st.write("حول فيديو واحد إلى نسخ متعددة بجودة فائقة مع الحفاظ على صوتك الأصلي")
+st.title("🖼️ Image to Video Generator")
+st.write("حول صورك الثابتة إلى فيديوهات سينمائية بدقة عالية")
 
 # --- الإعدادات الجانبية ---
 with st.sidebar:
-    st.header("⚙️ لوحة التحكم")
-    num_versions = st.number_input("كم نسخة تريد خلقها؟", min_value=1, max_value=50, value=1)
-    quality = st.selectbox("الدقة النهائية", ["High Definition (1080p)", "Ultra HD (4K Quality)"])
-    st.info("سيقوم النظام بالحفاظ على الموسيقى الأصلية للفيديو.")
+    st.header("⚙️ إعدادات الفيديو")
+    duration = st.slider("مدة الفيديو (بالثواني)", 2, 10, 5)
+    fps = st.select_slider("سلاسة الفيديو (FPS)", options=[24, 30, 60], value=30)
+    motion_effect = st.checkbox("إضافة تأثير الحركة الذكية (Zoom In)", value=True)
 
-# --- منطقة الرفع ---
-uploaded_file = st.file_uploader("قم بسحب وإفلات الفيديو هنا", type=["mp4", "mov", "avi"])
+# --- منطقة رفع الصور ---
+uploaded_image = st.file_uploader("قم برفع الصورة هنا", type=["jpg", "jpeg", "png"])
 
-if uploaded_file:
-    if st.button("بدء عملية التوليد والتحميل ✨"):
-        # حفظ الفيديو المرفوع
-        input_name = "input_original.mp4"
-        with open(input_name, "wb") as f:
-            f.write(uploaded_file.getbuffer())
+if uploaded_image:
+    # عرض الصورة الأصلية
+    st.image(uploaded_image, caption="الصورة الأصلية", width=400)
+    
+    if st.button("توليد الفيديو وتحميله 🚀"):
+        # حفظ الصورة مؤقتاً
+        img_path = "temp_image.png"
+        with open(img_path, "wb") as f:
+            f.write(uploaded_image.getbuffer())
         
-        for i in range(int(num_versions)):
-            output_name = f"generated_video_v{i+1}.mp4"
-            
-            with st.spinner(f'جاري إنتاج النسخة رقم {i+1}...'):
-                try:
-                    clip = VideoFileClip(input_name)
-                    
-                    # خلق تنوع في الألوان
-                    variation = 1.0 + (i * 0.05)
-                    processed = clip.fx(vfx.colorx, variation).fx(vfx.lum_contrast, 5, 20)
-                    
-                    # الجودة
-                    bit_rate = "18000k" if "4K" in quality else "6000k"
-                    
-                    # التصدير
-                    processed.write_videofile(output_name, codec="libx264", audio_codec="aac", bitrate=bit_rate)
-                    clip.close()
-                    processed.close()
-                    
-                    # عرض النتيجة وزر التحميل
-                    st.markdown('<div class="download-section">', unsafe_allow_html=True)
-                    st.subheader(f"🎬 النسخة {i+1} جاهزة")
-                    st.video(output_name)
-                    
-                    with open(output_name, "rb") as file:
-                        st.download_button(
-                            label=f"📥 تحميل النسخة {i+1}",
-                            data=file,
-                            file_name=output_name,
-                            mime="video/mp4",
-                            key=f"btn_{i}"
-                        )
-                    st.markdown('</div>', unsafe_allow_html=True)
-                except Exception as e:
-                    st.error(f"حدث خطأ في معالجة النسخة {i+1}: {e}")
+        output_video = "image_to_video.mp4"
+        
+        with st.spinner('جاري معالجة الصورة وتحويلها إلى فيديو عالي الجودة...'):
+            try:
+                # 1. إنشاء كليب من الصورة بالمدة المحددة
+                clip = ImageClip(img_path).set_duration(duration)
                 
+                # 2. إضافة تأثير الحركة (Zoom Effect) إذا تم اختياره
+                if motion_effect:
+                    # تقنية تحريك الصورة لجعلها تبدو كفيديو
+                    clip = clip.fx(vfx.resize, lambda t: 1 + 0.02*t) # تكبير تدريجي بسيط
+                
+                # 3. ضبط التردد (FPS) والجودة
+                clip = clip.set_fps(fps)
+                
+                # 4. التصدير بجودة عالية
+                clip.write_videofile(output_video, codec="libx264", bitrate="8000k")
+                clip.close()
+                
+                # --- عرض النتيجة والتحميل ---
+                st.markdown('<div class="download-section">', unsafe_allow_html=True)
+                st.subheader("✅ تم توليد الفيديو بنجاح")
+                st.video(output_video)
+                
+                with open(output_video, "rb") as file:
+                    st.download_button(
+                        label="📥 تحميل الفيديو الآن",
+                        data=file,
+                        file_name="generated_from_image.mp4",
+                        mime="video/mp4"
+                    )
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+            except Exception as e:
+                st.error(f"حدث خطأ أثناء المعالجة: {e}")
+
         st.balloons()
