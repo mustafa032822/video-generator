@@ -1,3 +1,0 @@
-moviepy==1.0.3
-streamlit==1.31.1
-decorator==4.4.2
